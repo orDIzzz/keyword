@@ -1,141 +1,183 @@
 package com.ordizzz.keyword;
 
 import java.util.*;
-import java.util.stream.Stream;
 
+/**
+ * Desk - абстракция над полем с буквами.<br>
+ *
+ * <ul>Имеет 3 приватных поля:
+ * <li>{@code String initString} - последовательность букв, которые будет содежать доска. Длина строки должна быть квадратом
+ * целого числа, для равномерного заполнения доски.</li>
+ * <li>{@code deskSize} - квадратный корень из длины {@code initString}. Необходим для расчета адреса {@code Address} и индекса букв.</li>
+ * <li>{@code keyNodeList} - ArrayList<KeyNode>, содержащий все буквы на доске.</li>
+ * </ul>
+ */
 class Desk {
     private final String initString;
     private int deskSize;
-    static ArrayList<KeyNode> keyNodeList = new ArrayList<>();
+    private static ArrayList<Keynode> keynodeList = new ArrayList<>();
 
+    /**
+     * При создании доски в конструктор передается {@code initString} - строка инициализации доски. Проверяется, что её
+     * длина является квадратом целого числа. Если нет, т.е. не имеет корня без остатка, то выбрасывается {@code InputMismatchException}.
+     * Затем создается {@code ArrayList<Keynode> keynodeList}, содержащий в себе все объекты Keynode на доске.
+     *
+     * @param initString - строка инициализации.
+     * @throws InputMismatchException если доска не квадратная, т.е. длина строки инициализации не является квадратом
+     *                                целого числа.
+     */
     public Desk(String initString) {
         this.initString = initString;
+        //Проверяем является ли длина строки квадратом целого числа
         if (Math.sqrt(initString.length()) % 1 == 0) {
+            // Сохраняем квадрат длины в переменную deskSize
             this.deskSize = (int) Math.sqrt(initString.length());
         } else {
+            // Выкидываем исключение
             throw new InputMismatchException();
         }
+        // Разбиваем строку на массив строк
         String[] arrayInitString = initString.split("");
-        for(int i=0;i<arrayInitString.length;i++) {
-            keyNodeList.add(new KeyNode(arrayInitString[i], i));
+        // В цикле заполняем ArrayList<Keynode> keyNodeList
+        for (int i = 0; i < arrayInitString.length; i++) {
+            keynodeList.add(new Keynode(arrayInitString[i], i));
         }
+        // Заполняем linkedNodes для каждого KeyNode
+        initLinkedLists();
+    }
+
+    /**
+     * Заполняет {@code linkedKeyNodes} для каждого Keynode
+     */
+    private void initLinkedLists() {
+        for (Keynode keynode : keynodeList) {
+            for (Map.Entry<Keynode.Address, Keynode> entry : keynode.linkedKeynodes.entrySet()) {
+                entry.setValue(Keynode.getKeynodeByAddress(entry.getKey()));
+            }
+        }
+    }
+
+    /**
+     * @return Возвращает весь список Keynode
+     */
+    public ArrayList<Keynode> getKeynodeList() {
+        return keynodeList;
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for (KeyNode node : keyNodeList) {
-            if (node.keyNodeAddress.y != deskSize - 1) {
-                sb.append(node.keyNodeValue).append("\t");
+        for (Keynode node : keynodeList) {
+            if (node.keynodeAddress.y != deskSize - 1) {
+                sb.append(node.keynodeValue).append("\t");
             } else {
-                sb.append(node.keyNodeValue).append("\n");
+                sb.append(node.keynodeValue).append("\n");
             }
         }
         return sb.toString();
     }
-    private String finder(KeyNode keyNode, List<String> seqForFind){
-       return "-1";
-    }
-    public String findWord(String word){
-        List<String> seqForFind = new ArrayList<>(Arrays.asList(word.toUpperCase().split("")));
-        for(KeyNode keyNode: keyNodeList){
-            if(keyNode.keyNodeValue.equals(seqForFind.get(0))){
-                List<String> copy = new ArrayList<>(seqForFind);
-                copy.remove(0);
-                String fromFind = finder(keyNode,copy);
-                if (fromFind != "-1") {
-                    return keyNode.getKeyNodeAddress().toString() + "->" + fromFind;
-                } else {
-                    continue;
-                }
-            }
-        }
-        return "Not found";
-    }
-//    private String finder(KeyNode keyNode, List<String> seqForFind) {
-//        String result = keyNode.getKeyNodeAddress() + "->";
-//        for (Map.Entry<KeyNode.Address, String> entry : keyNode.linkedKeyNodes.entrySet()) {
-//            String getValue = entry.getValue();
-//            String forEquals = seqForFind.get(1);
-//            if (getValue.equals(forEquals)) {
-//                if (seqForFind.size() > 0) {
-//                    seqForFind.remove(1);
-//                    result += entry.getKey().toString() + "->" + finder(KeyNode.getKeyNodeByAddress( entry.getKey()), seqForFind);
-//                }
-//
-//                return result;
-//            }
-//        }
-//        return "Not found";
-//    }
-//
-//    public String findWord(String word) {
-//        String normalizedWord = word.toUpperCase();
-//        String result = "Not found";
-//        boolean cached = false;
-//        List<String> fWord = new ArrayList<>(Arrays.asList(normalizedWord.split("")));
-//        for (KeyNode keyNode : keyNodeList) {
-//            if (keyNode.getValue().equals(fWord.get(0))) {
-//                String finderResult = finder(keyNode, fWord);
-//                result = !finderResult.equals("-1") ? finderResult : "Not found";
-//            }
-//        }
-//        return result;
-//    }
 
-    class KeyNode {
-        Map<Address, String> linkedKeyNodes = new HashMap<>();
-        Address keyNodeAddress;
-        public String getValue() {
-            return keyNodeValue;
-        }
-        String keyNodeValue;
+    public String findWord(String word) {
+        return "";
+    }
 
-        public KeyNode(String keyNode, int indexOfKeyNode) {
-            this.keyNodeAddress = new Address(indexOfKeyNode);
-            this.keyNodeValue = keyNode;
-            linkedKeyNodes.put((new Address(this.keyNodeAddress.x - 1, this.keyNodeAddress.y)), null);
-            linkedKeyNodes.put((new Address(this.keyNodeAddress.x + 1, this.keyNodeAddress.y)), null);
-            linkedKeyNodes.put((new Address(this.keyNodeAddress.x, this.keyNodeAddress.y - 1)), null);
-            linkedKeyNodes.put((new Address(this.keyNodeAddress.x, this.keyNodeAddress.y + 1)), null);
-            Map<Address, String> copy = new HashMap<>(linkedKeyNodes);
-            for (Map.Entry<Address, String> entry : copy.entrySet()) {
+    /**
+     * Keynode - абстракция над буквой на доске.<br>
+     * <ul>Имеет следующие поля:
+     * <li>{@code Map<Address , Keynode> linkedKeynodes} - для каждой буквы имеется список соседних букв.</li>
+     * <li>{@code Address keynodeAddress} - адрес буквы в формате {@code [строка, столбец]}.</li>
+     * <li>{@code String keynodeValue} - значение буквы.</li>
+     * </ul>
+     */
+    class Keynode {
+        Map<Address, Keynode> linkedKeynodes = new HashMap<>();
+        Address keynodeAddress;
+        String keynodeValue;
+
+        /**
+         * @param keynode        значение буквы, хранящейся в keynode
+         * @param indexOfKeynode индекс в строке инициализации для расчета адреса keynode.
+         */
+        private Keynode(String keynode, int indexOfKeynode) {
+            // Создается объект Address, расчитанный по индексу в строке инициализации доски
+            this.keynodeAddress = new Address(indexOfKeynode);
+            this.keynodeValue = keynode;
+            // Создаются 4 соседние клетки, даже несуществующие
+            linkedKeynodes.put((new Address(this.keynodeAddress.x - 1, this.keynodeAddress.y)), null);
+            linkedKeynodes.put((new Address(this.keynodeAddress.x + 1, this.keynodeAddress.y)), null);
+            linkedKeynodes.put((new Address(this.keynodeAddress.x, this.keynodeAddress.y - 1)), null);
+            linkedKeynodes.put((new Address(this.keynodeAddress.x, this.keynodeAddress.y + 1)), null);
+            Map<Address, Keynode> copy = new HashMap<>(linkedKeynodes);
+            // Затем из списка удаляются несуществующие KeyNode.
+            for (Map.Entry<Address, Keynode> entry : copy.entrySet()) {
+                // Если адрес KeyNode выходит за границы доски то такой KeyNode удаляется
                 if (
                         entry.getKey().x < 0 ||
                                 entry.getKey().y < 0 ||
                                 entry.getKey().x >= deskSize ||
                                 entry.getKey().y >= deskSize
                 ) {
-                    linkedKeyNodes.remove(entry.getKey());
-                } else {
-                    linkedKeyNodes.put(
-                            entry.getKey(),
-                            initString.split("")[Address.getIndexByAddress(entry.getKey(), deskSize)]
-                    );
+                    linkedKeynodes.remove(entry.getKey());
                 }
             }
         }
+
+        /**
+         * @return String Возвращает значение буквы, хранящейся в Keynode
+         */
+        public String getValue() {
+            return keynodeValue;
+        }
+
         @Override
         public String toString() {
-            return "KeyNode: [" + keyNodeValue +
-                    "], keyNodeAddress=" + keyNodeAddress +
-                    ", linkedKeyNodes=" + linkedKeyNodes;
+            return keynodeValue + "->" + keynodeAddress;
         }
-        public Address getKeyNodeAddress(){
-            return this.keyNodeAddress;
+
+        /**
+         * @return {@code Address} Возвращает адрес Keynode
+         */
+        public Address getKeynodeAddress() {
+            return this.keynodeAddress;
         }
-        public static KeyNode getKeyNodeByAddress(Address address) {
-            KeyNode result = null;
-            for (KeyNode keyNode : keyNodeList) {
-                if (address.equals(keyNode.keyNodeAddress)) {
-                    result = keyNode;
+
+        /**
+         * @param address {@code Address} ноды, которую надо получить как объект
+         * @return Возвращает {@code Keynode} по переданнаму адресу
+         */
+        public static Keynode getKeynodeByAddress(Address address) {
+            Keynode result = null;
+            for (Keynode keynode : keynodeList) {
+                if (address.equals(keynode.keynodeAddress)) {
+                    result = keynode;
                     return result;
                 }
             }
             return result;
         }
 
+        public Map<Address, Keynode> getLinkedKeynodes() {
+            return linkedKeynodes;
+        }
+
+        /**
+         * Простой класс, который содержит {@code x} - строка и {@code y} - столбец.
+         * Нумерация начинается с 0.
+         */
         class Address {
+            final int x;
+            final int y;
+
+            private Address(int index) {
+                if (index == 0) {
+                    this.x = 0;
+                    this.y = 0;
+                } else {
+                    this.x = index / deskSize;
+                    this.y = index % deskSize;
+                }
+            }
+
             @Override
             public String toString() {
                 return "[" + x + ", " + y + "]";
@@ -154,24 +196,16 @@ class Desk {
                 return Objects.hash(x, y);
             }
 
-            final int x;
-            final int y;
-
-            private Address(int index) {
-                if (index == 0) {
-                    this.x = 0;
-                    this.y = 0;
-                } else {
-                    this.x = index / deskSize;
-                    this.y = index % deskSize;
-                }
-            }
-
             private Address(int x, int y) {
                 this.x = x;
                 this.y = y;
             }
 
+            /**
+             * @param address  адрес ({@code Address}) Keynode
+             * @param deskSize размер доски.
+             * @return Возвращает индекс в строке инициализации по переданному адресу
+             */
             public static int getIndexByAddress(Address address, int deskSize) {
                 return (address.x * deskSize) + address.y;
             }
