@@ -1,6 +1,8 @@
 package com.ordizzz.keyword;
 
+import java.security.Key;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Desk - абстракция над полем с буквами.<br>
@@ -19,15 +21,14 @@ class Desk {
 
     /**
      * При создании доски в конструктор передается {@code initString} - строка инициализации доски. Проверяется, что её
-     * длина является квадратом целого числа. Если нет, т.е. не имеет корня без остатка, то выбрасывается {@code InputMismatchException}.
-     * Затем создается {@code ArrayList<Keynode> keynodeList}, содержащий в себе все объекты Keynode на доске.
-     *
+     * длина является квадратом целого числа. Если нет, т.е. не имеет корня без остатка, то выбрасывается {@link InputMismatchException}.
+     * Затем создается {@code ArrayList<Keynode> keynodeList}, содержащий в себе все объекты {@link Keynode} на доске.
      * @param initString - строка инициализации.
      * @throws InputMismatchException если доска не квадратная, т.е. длина строки инициализации не является квадратом
      *                                целого числа.
      */
     public Desk(String initString) {
-        this.initString = initString;
+        this.initString = initString.toUpperCase();
         //Проверяем является ли длина строки квадратом целого числа
         if (Math.sqrt(initString.length()) % 1 == 0) {
             // Сохраняем квадрат длины в переменную deskSize
@@ -77,8 +78,70 @@ class Desk {
         return sb.toString();
     }
 
+    private String finder(Keynode keynode, List<String> toFind, ArrayList<Keynode> excludedNodes){
+
+        String result = "";
+        //Создаем копию из linkedNodes текущего keynode
+        Map<Keynode.Address,Keynode> copyOfLinkedNodes = new HashMap<>(keynode.linkedKeynodes);
+        // Через поток проверяем присутствует ли элемент linkedNodes в excludedNodes
+        keynode.linkedKeynodes.forEach((key, value) -> {
+            for (Keynode excludedNode : excludedNodes) {
+                // Если присутствует то удаляем из копии copyOfLinkedNodes элемент с таким же адресом
+                if (excludedNode.keynodeAddress.equals(key)) {
+                    copyOfLinkedNodes.remove(key);
+                }
+            }
+        });
+        // Каждый элемент отфильтрованного списка проверяем на соответствие следуюей букве для поиска
+        for (Map.Entry<Keynode.Address,Keynode> entry: copyOfLinkedNodes.entrySet()) {
+            // Если текущий элемент linkedNodes соответствует следующей букве для поиска
+            if(
+                    // Значение текущего keynode из списка linkedNodes равно первой букве в искомой последовательности
+                    entry.getValue().keynodeValue.equals(toFind.get(0)) &
+                    // И в строке result нет -1
+                    !(result.contains("-1"))
+            )
+            {
+                // Если это последний элемент
+                if(toFind.size()==1) {
+                    // Возвращаем добавляем в стркоу result адрес последнего keynode и возвращаем строку
+                    return result +=entry.getKey().toString();
+                } else if(toFind.size()> 1){
+                    excludedNodes.add(entry.getValue());
+                    List<String> copyToFind = new ArrayList<>(toFind);
+                    copyToFind.remove(0);
+                    result+=entry.getKey() + finder(entry.getValue(),copyToFind, excludedNodes);
+                }
+            }
+        }
+        return "-1";
+    }
     public String findWord(String word) {
-        return "";
+        // Приводим строку к ArrayList, чтобы было проще
+        List<String> normalizedWord = new ArrayList<>(Arrays.asList(word.toUpperCase().split("")));
+        String firstElement = normalizedWord.get(0);
+        // Создаем список исключенных нод
+        ArrayList<Keynode> excludedNodes = new ArrayList<>();
+        // Создаем результирующую строку
+        String result = "";
+        // Ищем первую ноду
+        for (Keynode keynode: keynodeList) {
+            // Если значение текущего keynode совпадает с первым элементом в искомом слове
+            if(keynode.keynodeValue.equals(firstElement)){
+                // Если нашли, добавляем первую ноду в список сиключенных
+                excludedNodes.add(keynode);
+                // Удаляем первый символ из строки поиска, т.к. его уже нашли
+                normalizedWord.remove(0);
+                result+=keynode.getKeynodeAddress() + "->";
+                // Если результируюся строка содержит "-1" то идем дальше по общему списку нод
+                if ((result = finder(keynode, normalizedWord, excludedNodes)).toString().contains("-1")){
+                    continue;
+                };
+                return result;
+            }
+
+        }
+        return "Not found";
     }
 
     /**
